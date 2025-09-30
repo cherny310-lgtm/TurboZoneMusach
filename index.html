@@ -1,7 +1,8 @@
-<html lang="he" dir="rtl"><head>
+<html lang="he" dir="rtl">
+<head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>מוסך טורבוזון — מחשבון מחיר</title>
+  <title>מוסך טורבוזון - מחשבון מחיר</title>
   <style>
     :root{
       --bg:#1b1b1b;
@@ -84,6 +85,28 @@
       opacity: 0.7;
       pointer-events: none;
     }
+    .clear-btn {
+      margin-top:8px;
+      font-size:12px;
+      background:#444;
+      color:#fff;
+      border:none;
+      border-radius:6px;
+      padding:6px 10px;
+      cursor:pointer;
+    }
+    .clear-btn:hover { background:#666; }
+    .copy-btn {
+      margin-top:8px;
+      font-size:12px;
+      background:#007bff;
+      color:#fff;
+      border:none;
+      border-radius:6px;
+      padding:6px 10px;
+      cursor:pointer;
+    }
+    .copy-btn:hover { background:#3399ff; }
   </style>
 </head>
 <body>
@@ -95,7 +118,7 @@
         <p class="lead">מחשבון עלות + עמלה — הכנס מחיר, אחוז עמלה וסוג שיפור</p>
       </div>
     </header>
-    <form id="calcForm" onsubmit="return false;">
+    <form id="calcForm">
       <div class="grid">
         <div>
           <label for="serviceType">סוג שיפור / שירות</label>
@@ -109,7 +132,7 @@
           <label for="feePercent">עמלה / תוספת (%)</label>
           <div class="row">
             <input id="feePercent" type="number" min="0" max="1000" step="0.1" value="15">
-            <button id="calcBtn" class="btn" type="button">חשב</button>
+            <button id="calcBtn" class="btn" type="submit">חשב</button>
           </div>
         </div>
       </div>
@@ -121,6 +144,8 @@
       <div class="result-line"><div class="muted">סוג שיפור</div><div id="displayType" class="small">—</div></div>
       <div class="note">החישוב מתבצע בזמן אמת — לחיצה על "חשב" שומרת להיסטוריה</div>
       <div class="history" id="history"></div>
+      <button class="clear-btn" type="button" onclick="clearHistory()">נקה היסטוריה</button>
+      <button class="copy-btn" type="button" onclick="copyFormat()">העתק פורמט</button>
     </div>
   </div>
 
@@ -135,7 +160,9 @@
     const displayTotal = document.getElementById('displayTotal');
     const displayType = document.getElementById('displayType');
     const historyEl = document.getElementById('history');
-    const btn = document.getElementById('calcBtn');
+    const form = document.getElementById('calcForm');
+
+    let lastBase = 0, lastFee = 0, lastPct = 0, lastTotal = 0;
 
     function toCurrency(num){
       if (!isFinite(num)) return '—';
@@ -159,17 +186,50 @@
       displayFee.textContent = toCurrency(feeExact);
       displayTotal.textContent = toCurrency(total);
       displayType.textContent = typeInput.value.trim() || '—';
+      lastBase = base;
+      lastFee = feeExact;
+      lastPct = pct;
+      lastTotal = total;
       if(addToHistory){
         const item = document.createElement('div');
         item.className = 'history-item';
         item.innerHTML = `<span class="small">${typeInput.value.trim() || '—'}</span><br>${toCurrency(base)} → עמלה ${pct}% = ${toCurrency(feeExact)} → סה"כ ${toCurrency(total)}`;
         historyEl.prepend(item);
+        saveHistory();
       }
     }
+    function saveHistory(){
+      localStorage.setItem("calcHistory", historyEl.innerHTML);
+    }
+    function loadHistory(){
+      historyEl.innerHTML = localStorage.getItem("calcHistory") || "";
+    }
+    function clearHistory(){
+      historyEl.innerHTML = "";
+      localStorage.removeItem("calcHistory");
+    }
+    function copyFormat(){
+      const text = 
+`מחיר לפני עמלה: ${toCurrency(lastBase)}
+אחוז עמלה: ${lastPct}%
+כמות עמלה: ${toCurrency(lastFee)}
+מחיר אחרי עמלה: ${toCurrency(lastTotal)}`;
+      navigator.clipboard.writeText(text).then(()=>{
+        alert("הטקסט הועתק לפורמט!");
+      });
+    }
+
     [baseInput, feeInput, typeInput].forEach(el => {
       el.addEventListener('input', () => calculateAndDisplay(false));
     });
-    btn.addEventListener('click', () => { calculateAndDisplay(true); });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      calculateAndDisplay(true);
+    });
+
+    // הפעלה ראשונית + טעינת היסטוריה
     calculateAndDisplay(false);
+    loadHistory();
   </script>
-</body></html>
+</body>
+</html>
