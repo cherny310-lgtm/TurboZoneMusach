@@ -1,0 +1,175 @@
+<html lang="he" dir="rtl"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>מוסך טורבוזון — מחשבון מחיר</title>
+  <style>
+    :root{
+      --bg:#1b1b1b;
+      --card:#262626;
+      --accent:#9000ff;
+      --muted:#cccccc;
+      --glass: rgba(255,255,255,0.05);
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    body{
+      margin:0;
+      min-height:100vh;
+      background: radial-gradient(circle at top, #2a2a2a, #0f0f0f);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .card{
+      width:100%;
+      max-width:820px;
+      background:var(--card);
+      border-radius:14px;
+      padding:22px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    header{display:flex;gap:12px;align-items:center;margin-bottom:14px;}
+    .logo{
+      width:74px;height:74px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),#007bff);
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:#1b1b1b;
+      box-shadow: 0 6px 18px rgba(255,180,0,0.4);
+      flex-shrink:0;
+      font-size:40px;
+    }
+    h1{margin:0;font-size:22px;color:var(--accent)}
+    p.lead{margin:2px 0 0;color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns: 1fr 1fr;gap:14px;margin-top:14px;}
+    @media(max-width:720px){ .grid{grid-template-columns:1fr;} .logo{width:62px;height:62px}}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type="number"], input[type="text"]{
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:var(--glass);
+      color:inherit;
+      font-size:15px;
+      outline:none;
+    }
+    .row{display:flex;gap:10px;align-items:center}
+    .btn{
+      padding:10px 14px;border-radius:10px;border:0;
+      background:linear-gradient(90deg,var(--accent),#007bff);
+      color:#1b1b1b;font-weight:700;cursor:pointer;font-size:15px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    }
+    .btn:hover { opacity: 0.85; }
+    .results{
+      margin-top:16px;padding:14px;border-radius:10px;background:rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.05);
+    }
+    .result-line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.1)}
+    .result-line:last-child{border-bottom:0}
+    .big{font-size:18px;font-weight:700;color:var(--accent)}
+    .muted{color:var(--muted);font-size:13px}
+    .note{margin-top:10px;color:var(--muted);font-size:13px}
+    .history{margin-top:12px;max-height:160px;overflow:auto;padding-top:8px}
+    .history-item{padding:8px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.03);font-size:13px}
+    .small{font-size:12px;color:var(--muted)}
+    .credit {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <header>
+      <div class="logo" aria-hidden="true">🔧</div>
+      <div>
+        <h1>מוסך טורבוזון</h1>
+        <p class="lead">מחשבון עלות + עמלה — הכנס מחיר, אחוז עמלה וסוג שיפור</p>
+      </div>
+    </header>
+    <form id="calcForm" onsubmit="return false;">
+      <div class="grid">
+        <div>
+          <label for="serviceType">סוג שיפור / שירות</label>
+          <input id="serviceType" type="text" placeholder="הכנס סוג שיפור">
+        </div>
+        <div>
+          <label for="basePrice">מחיר לפני עמלה (₪)</label>
+          <input id="basePrice" type="number" min="0" step="0.01" placeholder="1000">
+        </div>
+        <div>
+          <label for="feePercent">עמלה / תוספת (%)</label>
+          <div class="row">
+            <input id="feePercent" type="number" min="0" max="1000" step="0.1" value="15">
+            <button id="calcBtn" class="btn" type="button">חשב</button>
+          </div>
+        </div>
+      </div>
+    </form>
+    <div class="results" aria-live="polite">
+      <div class="result-line"><div class="muted">מחיר לפני עמלה</div><div id="displayBase" class="big">‏0&nbsp;‏₪</div></div>
+      <div class="result-line"><div class="muted">סכום העמלה</div><div id="displayFee" class="big">‏0&nbsp;‏₪</div></div>
+      <div class="result-line"><div class="muted">סכום כולל אחרי העמלה</div><div id="displayTotal" class="big">‏0&nbsp;‏₪</div></div>
+      <div class="result-line"><div class="muted">סוג שיפור</div><div id="displayType" class="small">—</div></div>
+      <div class="note">החישוב מתבצע בזמן אמת — לחיצה על "חשב" שומרת להיסטוריה</div>
+      <div class="history" id="history"></div>
+    </div>
+  </div>
+
+  <div class="credit">made by cherny13</div>
+
+  <script>
+    const baseInput = document.getElementById('basePrice');
+    const feeInput = document.getElementById('feePercent');
+    const typeInput = document.getElementById('serviceType');
+    const displayBase = document.getElementById('displayBase');
+    const displayFee = document.getElementById('displayFee');
+    const displayTotal = document.getElementById('displayTotal');
+    const displayType = document.getElementById('displayType');
+    const historyEl = document.getElementById('history');
+    const btn = document.getElementById('calcBtn');
+
+    function toCurrency(num){
+      if (!isFinite(num)) return '—';
+      return Number(num).toLocaleString('he-IL', {
+        style: 'currency',
+        currency: 'ILS',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      });
+    }
+    function safeNumber(v){
+      const n = Number(v);
+      return (isFinite(n) && n>=0) ? n : 0;
+    }
+    function calculateAndDisplay(addToHistory = false){
+      const base = safeNumber(baseInput.value);
+      const pct = safeNumber(feeInput.value);
+      const feeExact = Math.round((base * (pct/100)) * 100) / 100;
+      const total = Math.round((base + feeExact) * 100) / 100;
+      displayBase.textContent = toCurrency(base);
+      displayFee.textContent = toCurrency(feeExact);
+      displayTotal.textContent = toCurrency(total);
+      displayType.textContent = typeInput.value.trim() || '—';
+      if(addToHistory){
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `<span class="small">${typeInput.value.trim() || '—'}</span><br>${toCurrency(base)} → עמלה ${pct}% = ${toCurrency(feeExact)} → סה"כ ${toCurrency(total)}`;
+        historyEl.prepend(item);
+      }
+    }
+    [baseInput, feeInput, typeInput].forEach(el => {
+      el.addEventListener('input', () => calculateAndDisplay(false));
+    });
+    btn.addEventListener('click', () => { calculateAndDisplay(true); });
+    calculateAndDisplay(false);
+  </script>
+</body></html>
